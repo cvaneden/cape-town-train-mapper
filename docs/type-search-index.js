@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"JourneyPlanner","l":"Graph"},{"p":"JourneyPlanner","l":"Line"},{"p":"JourneyPlanner","l":"Route"},{"p":"JourneyPlanner","l":"RoutingStation"},{"p":"JourneyPlanner","l":"Schedule"},{"p":"JourneyPlanner","l":"Station"},{"p":"JourneyPlanner","l":"Time"},{"p":"JourneyPlanner","l":"Train"}]
