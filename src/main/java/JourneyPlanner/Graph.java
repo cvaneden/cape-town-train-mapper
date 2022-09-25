@@ -1,7 +1,7 @@
 
 package JourneyPlanner;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Arrays;
 
@@ -13,35 +13,25 @@ import java.util.Scanner;
  * An unweighted, undirected graph data structure whose nodes are Station objects
  *
  * @author Michael Wade
- * @version 16 Aug 2022, 8:30pm 
  */
 public class Graph {
-    private Hashtable<String, Station> graph;
-
     /**
-     * Hardcode the sample graph
+     * The collection of nodes in the graph. Keys = station names, values = station objects
      */
-    public Graph() {
-        this.graph = new Hashtable<String, Station>();
-        this.graph.put("A", new Station("A", new LinkedList<String>(Arrays.asList("B, F, G".split(", ")))));
-        this.graph.put("B", new Station("B", new LinkedList<String>(Arrays.asList("A, F, C".split(", ")))));
-        this.graph.put("C", new Station("C", new LinkedList<String>(Arrays.asList("B, F, D".split(", ")))));
-        this.graph.put("D", new Station("D", new LinkedList<String>(Arrays.asList("C, E".split(", ")))));
-        this.graph.put("E", new Station("E", new LinkedList<String>(Arrays.asList("D, F".split(", ")))));
-        this.graph.put("F", new Station("F", new LinkedList<String>(Arrays.asList("A, B, C, E".split(", ")))));
-        this.graph.put("G", new Station("G", new LinkedList<String>(Arrays.asList("A, H".split(", ")))));
-        this.graph.put("H", new Station("H", new LinkedList<String>(Arrays.asList("G".split(", ")))));
-    }
+    private HashMap<String, Station> graph;
+
 
     /**
      * Fill up a graph of stations from a file. With typo detection.
      *
-     * File format. The first line should specify the number of nodes. Thereafter, each line should have this format:
-     * <Station name>: <Adjacent station name 1>, <Adjacent station name 2>, ... <Adjacent station name n>
+     * <p>File format. The first line should specify the number of nodes. Thereafter, each line should have this format:
+     * <p>[Station name]: [Adjacent station name 1], [Adjacent station name 2], ... [Adjacent station name n]
      *
-     * Note that if the entry for station A says that it is adjacent to station B, then the entry for station B should
+     * <p>Note that if the entry for station A says that it is adjacent to station B, then the entry for station B should
      * say that it is adjacent to station A as well (this is not checked automatically).
      * @param fileName the file which contains the graph information
+     * @throws java.util.NoSuchElementException if the file is formatted incorrectly
+     * @throws java.util.InputMismatchException if the first line doesn't specify the number of nodes as an integer
      */
     public Graph(String fileName) {
         // Open file
@@ -56,27 +46,14 @@ public class Graph {
         // Get size of graph from file
         int size = file.nextInt();
         file.nextLine();
-        this.graph = new Hashtable<String, Station>(size);
+        file.useDelimiter(":");
+        this.graph = new HashMap<String, Station>(size);
 
         // Get stations from file
         while (file.hasNextLine()) {
-            String stationName = file.next().toUpperCase();
-            stationName = stationName.substring(0, stationName.length() - 1);   // remove the ":" at the end
-            String[] adjacentStations = file.nextLine().split(", ");
-            adjacentStations[0] = adjacentStations[0].substring(1);   // remove the leading " "
-
-            // Typo Detection
-            if (hasTypo(stationName)) {
-                System.out.println("Warning: \""  + stationName + "\" may have a typo. Found in station names. ");
-                System.exit(0);
-            }
-            for (int i = 0; i < adjacentStations.length; i++) {
-                adjacentStations[i] = adjacentStations[i].toUpperCase();
-                if (hasTypo(adjacentStations[i])) {
-                    System.out.println("Warning: \"" + adjacentStations[i] + "\" may have a typo. Found in stations adjacent to " + stationName);
-                    System.exit(0);
-                }
-            }
+            String stationName = file.next();
+            String[] adjacentStations = file.nextLine().trim().split(", ");
+            adjacentStations[0] = adjacentStations[0].substring(2);   // remove the leading ": "
 
             // Create Station object and add it to the graph
             this.graph.put(stationName, new Station(stationName, new LinkedList<String>(Arrays.asList(adjacentStations))));
@@ -86,24 +63,122 @@ public class Graph {
 
     /**
      * Checks if the given string doesn't match one of the station names in Cape Town. This then
-     * is probably a typo in the name.
+     * is probably a typo in the name
      * @param name the name to check for typos
      * @return True, if typo is found. False, otherwise
+     * @throws IllegalArgumentException if name is null
+     * @deprecated
      */
-    private static boolean hasTypo(String name) {
-        String[] stationNames = "CAPE_TOWN WOODSTOCK SALT_RIVER KOEBERG_RD MAITLAND NDABENI PINELANDS ESPLANADE PAARDENEILAND YSTERPLAAT MUTUAL LANGA BONTEHEUWEL NETREG HEIDEVELD NYANGA PHILIPPI LENTEGEUR MITCHELLS_PL. KAPTEINSKLIP STOCK_ROAD MANDALAY NOLUNGILE NONKQUBELA KHAYELITSHA KUYASA CHRIS_HANI LAVISTOWN BELHAR UNIBELL PENTECH SAREPTA BELLVILLE A B C D E F G H I".split(" ");
-        for (String stationName : stationNames) {
-            if (name.equalsIgnoreCase(stationName)) {
-                return false;
-            }
-        }
-        return true;
+    public static boolean hasTypo(String name) {
+        if (name == null)
+            throw new IllegalArgumentException("name can't be null");
+        String stationNames = "ATHLONE," +
+                              "BELHAR," +
+                              "BELLVILLE," +
+                              "BLACKHEATH," +
+                              "BONTEHEUWEL," +
+                              "BRACKENFELL," +
+                              "CAPE TOWN," +
+                              "CHRIS HANI," +
+                              "CLAREMONT," +
+                              "CRAWFORD," +
+                              "DAL JOSAFAT," +
+                              "DIEPRIVIER," +
+                              "DU TOIT," +
+                              "EERSTE RIVER," +
+                              "EIKENFONTEIN," +
+                              "ELSIES RIVER," +
+                              "ESPLANADE," +
+                              "FALSE BAY," +
+                              "FAURE," +
+                              "FIRGROVE," +
+                              "FISH HOEK," +
+                              "GLENCAIRN," +
+                              "GOODWOOD," +
+                              "HARFIELD RD," +
+                              "HAZENDAL," +
+                              "HEATHFIELD," +
+                              "HEIDEVELD," +
+                              "HUGUENOT," +
+                              "KALK BAY," +
+                              "KAPTEINSKLIP," +
+                              "KENILWORTH," +
+                              "KHAYELITSHA," +
+                              "KLAPMUTS," +
+                              "KOEBERG RD," +
+                              "KOELENHOF," +
+                              "KRAAIFONTEIN," +
+                              "KUILS RIVER," +
+                              "KUYASA," +
+                              "LAKESIDE," +
+                              "LANGA," +
+                              "LANSDOWNE," +
+                              "LAVISTOWN," +
+                              "LENTEGEUR," +
+                              "LYNEDOCH," +
+                              "MAITLAND," +
+                              "MANDALAY," +
+                              "MBEKWENI," +
+                              "MELTONROSE," +
+                              "MITCHELLS PL.," +
+                              "MOWBRAY," +
+                              "MUIZENBERG," +
+                              "MULDERSVLEI," +
+                              "MUTUAL," +
+                              "NDABENI," +
+                              "NETREG," +
+                              "NEWLANDS," +
+                              "NOLUNGILE," +
+                              "NONKQUBELA," +
+                              "NYANGA," +
+                              "OBSERVATORY," +
+                              "OTTERY," +
+                              "PAARDENEILAND," +
+                              "PAARL," +
+                              "PAROW," +
+                              "PENTECH," +
+                              "PHILIPPI," +
+                              "PINELANDS," +
+                              "PLUMSTEAD," +
+                              "RETREAT," +
+                              "RONDEBOSCH," +
+                              "ROSEBANK," +
+                              "SALT RIVER," +
+                              "SAREPTA," +
+                              "SIMON'S TOWN," +
+                              "SOMERSET WEST," +
+                              "SOUTHFIELD," +
+                              "STEENBERG," +
+                              "STELLENBOSCH," +
+                              "STEURHOF," +
+                              "STIKLAND," +
+                              "STOCK ROAD," +
+                              "STRAND," +
+                              "ST JAMES," +
+                              "SUNNY COVE," +
+                              "THORNTON," +
+                              "TYGERBERG," +
+                              "UNIBELL," +
+                              "VAN DER STEL," +
+                              "VASCO," +
+                              "VLOTTENBURG," +
+                              "WELLINGTON," +
+                              "WETTON," +
+                              "WITTEBOME," +
+                              "WOLTEMADE," +
+                              "WOODSTOCK," +
+                              "WYNBERG," +
+                              "YSTERPLAAT";
+
+        return Arrays.binarySearch(stationNames.split(","), name) < 0; // binary search for the name: if it's found return false (no typo), else return true
     }
+
 
     /**
      * Get a station from the graph
      * @param stationName the name of the station to get
      * @return the station in the graph with this name
+     * @throws NullPointerException if stationName is null
      */
     public Station get(String stationName) {
         return this.graph.get(stationName);

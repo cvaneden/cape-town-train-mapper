@@ -10,16 +10,18 @@ import javax.persistence.Entity;
  */
 @Entity
 public class RouteItem extends AbstractEntity {
-    private String station;
-    private String time;
+    private String startStation;
+    private String endStation;
+    private String startTime;
+    private String endTime;
     private int train;
-    private boolean transfer;
 
-    public RouteItem(String station, String time, int train, boolean transfer) {
-        this.station = station;
-        this.time = time;
+    public RouteItem(String startStation, String startTime, String endStation, String endTime, int train) {
+        this.startStation = startStation;
+        this.startTime = startTime;
+        this.endStation = endStation;
+        this.endTime = endTime;
         this.train = train;
-        this.transfer = transfer;
     }
 
     public int getTrain() {
@@ -30,27 +32,36 @@ public class RouteItem extends AbstractEntity {
         this.train = train;
     }
 
-    public String getTime() {
-        return time;
+    public String getStartStation() {
+        return startStation;
     }
 
-    public void setTime(String time) {
-        this.time = time;
+    public void setStartStation(String startStation) {
+        this.startStation = startStation;
     }
 
-    public String getStation() {
-        return station;
+    public String getEndStation() {
+        return endStation;
     }
 
-    public void setStation(String station) {
-        this.station = station;
+    public void setEndStation(String endStation) {
+        this.endStation = endStation;
     }
 
-    public boolean getTransfer() {
-        return transfer;
+    public String getStartTime() {
+        return startTime;
     }
 
-    public void setTransfer(boolean transfer) {
-        this.transfer = transfer;
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
     }
+
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
+    }
+
 }

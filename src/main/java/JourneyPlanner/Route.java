@@ -1,8 +1,10 @@
 
 package JourneyPlanner;
 
+import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.PriorityQueue;
+import java.util.PriorityQueue; 
+
 
 /**
  * A Route object stores all the information about the route a user will take
@@ -10,23 +12,44 @@ import java.util.PriorityQueue;
  * train arrival times. A new Route object is made per routing request made in the app.
  * 
  * @author Michael Wade
- * @version 3 Sep 2022, 1:40pm
+ * @see Line
+ * @see Schedule
+ * @see Graph
+ * @see RoutingStation
  */
-public class Route {
+public class Route { 
 
    // Routing variables
+   /**
+    * The graph to use during routing. Initialised using {@code setGraph(Graph graph)}
+    */
    private static Graph graph;
-   private static Schedule schedule;
+
+   /**
+    * The collection of lines to use during routing
+    */
+   private static HashMap<String, Line> lines;
+
 
    // Output variables
+   /**
+    * Stations visited on shortest path
+    */
    private final LinkedList<RoutingStation> stations;
-   //private final LinkedList<Integer> platformNumbers; // platform number that the train arrives at, at each station
+
+   /**
+    * Trains taken on shortest path
+    */
    private final LinkedList<Integer> trainNumbers;
+
+   /**
+    * Arrival times at each station in {@code stations}
+    */
    private final LinkedList<Time> arrivalTimes;
 
 
    /**
-    * Overrides the default graph to use during routing.
+    * Sets the graph to use during routing.
     * @param graph the graph to use
     */
    public static void setGraph(Graph graph) {
@@ -35,27 +58,27 @@ public class Route {
 
 
    /**
-    * Overrides the default schedule to use during routing.
-    * @param schedule the schedule to use
+    * Sets the line schedules to use during routing.
+    * @param lines the array of line objects which contain the schedules
     */
-   public static void setSchedule(Schedule schedule) {
-      Route.schedule = schedule;
+   public static void setLines(HashMap<String, Line> lines) {
+      Route.lines = lines;
    }
 
 
    /**
-    * Creates a new Route object and sets the default schedule and graph
+    * Creates a new Route object
+    * @throws IllegalStateException if {@code setGraph()} and {@code setLines()} have not been called prior
     */
    private Route() {
-      this.stations = new LinkedList<RoutingStation>(); 
-      //this.platformNumbers = new LinkedList<Integer>(); 
+      this.stations = new LinkedList<RoutingStation>();
       this.trainNumbers = new LinkedList<Integer>(); 
       this.arrivalTimes = new LinkedList<Time>();
 
       if (Route.graph == null)
-         Route.graph = new Graph();
-      if (Route.schedule == null)
-         Route.schedule = new Schedule();
+         throw new IllegalStateException("graph has not been initialised. Use setGraph(Graph graph)");
+      if (Route.lines == null)
+         throw new IllegalStateException("lines schedule has not been initialised. Use setLines(HashMap<String, Line> lines)");
    }
    
    
@@ -67,9 +90,22 @@ public class Route {
     * @param start The station to start at
     * @param end The destination station
     * @param startTime The desired departure time
-    *
+    * @return a Route object containing all the information about the shortest path
+    * @throws IllegalArgumentException If any of the parameters {@code start, end, endTime} are null, or {@code dayType != 0, 1 or 2}
+    * @throws IllegalStateException if {@code setGraph()} and {@code setLines()} have not been called prior
     */
-   public static Route getRoute_EarliestArrival(RoutingStation start, RoutingStation end, Time startTime) {
+   public static Route getRoute_EarliestArrival(RoutingStation start, RoutingStation end, Time startTime, int dayType) {
+      HashMap<String, RoutingStation> routingStations = new HashMap<String, RoutingStation>();
+
+      if (start == null)
+         throw new IllegalArgumentException("start can't be null");
+      if (end == null)
+         throw new IllegalArgumentException("end can't be null");
+      if (startTime == null)
+         throw new IllegalArgumentException("startTime can't be null");
+      if (! (0 <= dayType && dayType < 3))
+         throw new IllegalArgumentException("dayType must be one of 0, 1, 2");
+      
       Route route = new Route();
       start.setCost(Time.MIN_TIME); // set cost to 00:00 zero time
       Time clock = startTime;
@@ -93,7 +129,16 @@ public class Route {
          
          // For each station T adjacent to S 
          for (String stationName : S.adjacentStations()) {
-            RoutingStation T = new RoutingStation(Route.graph.get(stationName));
+            // Get or create Routing station object
+            RoutingStation T;
+            if (routingStations.containsKey(stationName)) {
+               T = routingStations.get(stationName); // get the existing routing station object
+            }
+            else {
+               T = new RoutingStation(Route.graph.get(stationName)); // or create new routing station object
+               routingStations.put(stationName, T);
+            }
+
             if (T.popped()) {
                continue;  // if T has been popped from the queue before, then skip this one and check the next
             }
@@ -101,35 +146,61 @@ public class Route {
             // Time until next train, that comes from S, arrives at T
             // Also get the train number of this train 
             Time earliestArrivalTime = Time.MAX_TIME;
-            int earliestTrainNumber = 0; 
+            int earliestTrainNumber = 0;
+            String earliestLine = "";
 
             // First check the current train (the one the user is currently on)
             boolean checkOtherTrains = true;
             if (S.prevTrain() != 0) {  // If S isn't the starting station i.e. there is a current train
-               Train currentTrain = Route.schedule.getTrain(S.prevTrain());  // get the current train (its train number)
+               Train currentTrain = Route.lines.get(S.prevLine()).schedule().getTrain(S.prevTrain());  // get the current train (its train number)
 
-               Time currentTrainArrivalAtT = currentTrain.getNextArrivalTimeAt(T, clock); // get the time the train arrives at T, or null if it doesn't
+               Time currentTrainArrivalAtT = currentTrain.getNextArrivalTimeAt(T, clock, dayType); // get the time the train arrives at T, or null if it doesn't
                if (! currentTrainArrivalAtT.equals(Time.MAX_TIME)) { // if the current train passes T
                   earliestArrivalTime = currentTrainArrivalAtT;
                   earliestTrainNumber = S.prevTrain();
+                  earliestLine = S.prevLine();
                   checkOtherTrains = false;
                }
             }
             // Otherwise, check all the other trains
             if (checkOtherTrains) {
-               for (Train train : Route.schedule.trains()) {
-                  Time arrivalTimeAtT = train.getNextArrivalTimeAt(T, clock); // Get the next time that the train arrives at station T
-                  Time arrivalTimeAtS = train.getNextArrivalTimeAt(S, clock); // If it doesn't pass that station, it returns null
 
-                  // Compare arrivalTime with earliestArrivalTime
-                  if (arrivalTimeAtS.isBefore(arrivalTimeAtT)) {   // if the train passes S before T
-                     if (arrivalTimeAtT.isBefore(earliestArrivalTime)) {  // If we've found an earlier train to take
-                        earliestArrivalTime = arrivalTimeAtT;
-                        earliestTrainNumber = train.number();
+               // Find lines which contain S and T in order, or if no such line exists, instead get all lines which contain one of S or T
+               LinkedList<Line> linesWhichContainSAndT = new LinkedList<Line>();
+               boolean foundALineWhichContainsBothInOrder = false;
+               int containsStatus;
+
+               // Check all lines
+               for (Line line : lines.values()) {
+                  containsStatus = line.contains(S, T);
+                  if (containsStatus > 0) {
+                     linesWhichContainSAndT.add(line);
+                     if (containsStatus == 3)
+                        foundALineWhichContainsBothInOrder = true;
+                  }
+               }
+               // If there are lines which contain both S and T in order, then remove all other lines
+               if (foundALineWhichContainsBothInOrder)
+                  linesWhichContainSAndT.removeIf(line -> line.contains(S, T) < 3);
+
+               // for each line
+               for (Line line : linesWhichContainSAndT) {
+                  // for each train on this line
+                  for (Train train : line.schedule().trains()) {
+                     Time arrivalTimeAtT = train.getNextArrivalTimeAt(T, clock, dayType); // Get the next time that the train arrives at station T
+                     Time arrivalTimeAtS = train.getNextArrivalTimeAt(S, clock, dayType); // If it doesn't pass that station, it returns null
+
+                     // Compare arrivalTime with earliestArrivalTime
+                     if (arrivalTimeAtS.isBefore(arrivalTimeAtT)) {   // if the train passes S before T
+                        if (arrivalTimeAtT.isBefore(earliestArrivalTime)) {  // If we've found an earlier train to take
+                           earliestArrivalTime = arrivalTimeAtT;
+                           earliestTrainNumber = train.number();
+                           earliestLine = line.name();
+                        }
+                        // Update the earliest train to take from S
+                        if (arrivalTimeAtS.isBefore(S.timeArrivedAt()))
+                           S.setTimeArrivedAt(arrivalTimeAtS);
                      }
-                     // Update the earliest train to take from S
-                     if (arrivalTimeAtS.isBefore(S.timeArrivedAt()))
-                        S.setTimeArrivedAt(arrivalTimeAtS);
                   }
                }
             }
@@ -140,14 +211,24 @@ public class Route {
                T.setCost(costToT);
                T.setTimeArrivedAt(earliestArrivalTime);
                T.setPrevTrain(earliestTrainNumber);
+               T.setPrevLine(earliestLine);
 
                queue.add(T);
             }
          }
       }
-      // Extract the shortest path recursively
-      route.extractShortestPath(endStation); 
-      return route; 
+      // Extract the shortest path by repeatedly calling prev() from end station to start station
+      RoutingStation prev = endStation;
+      if (prev != null) {
+         do {
+            route.stations.addFirst(prev);
+            route.trainNumbers.addFirst(prev.prevTrain());
+            route.arrivalTimes.addFirst(prev.timeArrivedAt());
+            prev = prev.prev();
+         }
+         while (prev != null);
+      }
+      return route;
    }
 
 
@@ -159,14 +240,27 @@ public class Route {
     * @param start The station to start at
     * @param end The destination station
     * @param endTime The desired departure time
-    *
+    * @return a Route object containing all the information about the shortest path
+    * @throws IllegalArgumentException If any of the parameters {@code start, end, endTime} are null, or {@code dayType != 0, 1 or 2}
+    * @throws IllegalStateException if {@code setGraph()} and {@code setLines()} have not been called prior
     */
-   public static Route getRoute_LatestDeparture(RoutingStation start, RoutingStation end, Time endTime) {
+   public static Route getRoute_LatestDeparture(RoutingStation start, RoutingStation end, Time endTime, int dayType) {
+      HashMap<String, RoutingStation> routingStations = new HashMap<String, RoutingStation>();
+
+      if (start == null)
+         throw new IllegalArgumentException("start can't be null");
+      if (end == null)
+         throw new IllegalArgumentException("end can't be null");
+      if (endTime == null)
+         throw new IllegalArgumentException("endTime can't be null");
+      if (! (0 <= dayType && dayType < 3))
+         throw new IllegalArgumentException("dayType must be one of 0, 1, 2");
+
       Route route = new Route();
       end.setCost(Time.MIN_TIME); // set cost to 00:00 zero time
       end.setTimeArrivedAt(Time.MIN_TIME);
       Time clock = endTime;
-      RoutingStation endStation = null;  // placeholder for end RoutingStation
+      RoutingStation startStation = null;  // placeholder for start RoutingStation
 
       PriorityQueue<RoutingStation> queue = new PriorityQueue<RoutingStation>();
       queue.add(end);
@@ -176,19 +270,23 @@ public class Route {
          S.setPopped(true);
          Time minCost = Time.MAX_TIME;
 
-         if (S.equals(start)) {   // The shortest route to end has been found
-            endStation = end;
-            break;
-         }
-
          if (! S.timeArrivedAt().equals(Time.MIN_TIME)) {
             clock = S.timeArrivedAt();
          }
 
          // For each station T adjacent to S
          for (String stationName : S.adjacentStations()) {
-            RoutingStation T = new RoutingStation(Route.graph.get(stationName));
-            T.setTimeArrivedAt(Time.MIN_TIME);
+            // Get or create Routing station object
+            RoutingStation T;
+            if (routingStations.containsKey(stationName)) {
+               T = routingStations.get(stationName); // get the existing routing station object
+            }
+            else {
+               T = new RoutingStation(Route.graph.get(stationName)); // or create new routing station object
+               T.setTimeArrivedAt(Time.MIN_TIME);
+               routingStations.put(stationName, T);
+            }
+
             if (T.popped()) {
                continue;  // if T has been popped from the queue before, then skip this one and check the next
             }
@@ -197,23 +295,46 @@ public class Route {
             // Also get the train number of this train
             Time latestArrivalTime = Time.MIN_TIME;
             int latestTrainNumber = 0;
+            String latestLine = "";
 
-            for (Train train : Route.schedule.trains()) {
-               Time arrivalTimeAtT = train.getLastArrivalTimeAt(T, clock); // Get the next time that the train arrives at station T
-               Time arrivalTimeAtS = train.getLastArrivalTimeAt(S, clock); // If it doesn't pass that station, it returns null
+            // Find lines which contain S and T in order, or if no such line exists, instead get all lines which contain one of S or T
+            LinkedList<Line> linesWhichContainSAndT = new LinkedList<Line>();
+            boolean foundALineWhichContainsBothInOrder = false;
+            int containsStatus;
 
-               // Compare arrivalTime with earliestArrivalTime
-               if (arrivalTimeAtS.isAfter(arrivalTimeAtT)) {   // if the train passes T before S
-                  if (arrivalTimeAtT.isAfter(latestArrivalTime)) {  // If we've found a later train to take
-                     latestArrivalTime = arrivalTimeAtT;
-                     latestTrainNumber = train.number();
-                  }
-                  // Update the earliest train to take from S
-                  if (arrivalTimeAtS.isAfter(S.timeArrivedAt()))
-                     S.setTimeArrivedAt(arrivalTimeAtS);
+            // Check all lines
+            for (Line line : lines.values()) {
+               containsStatus = line.contains(T, S);
+               if (containsStatus > 0) {
+                  linesWhichContainSAndT.add(line);
+                  if (containsStatus == 3)
+                     foundALineWhichContainsBothInOrder = true;
                }
             }
+            // If there are lines which contain both S and T in order, then remove all other lines
+            if (foundALineWhichContainsBothInOrder)
+               linesWhichContainSAndT.removeIf(line -> line.contains(T, S) < 3);
 
+            // for each line
+            for (Line line : linesWhichContainSAndT) {
+               // for each train on this line
+               for (Train train : line.schedule().trains()) {
+                  Time arrivalTimeAtT = train.getLastArrivalTimeAt(T, clock, dayType); // Get the next time that the train arrives at station T
+                  Time arrivalTimeAtS = train.getLastArrivalTimeAt(S, clock, dayType); // If it doesn't pass that station, it returns null
+
+                  // Compare arrivalTime with earliestArrivalTime
+                  if (arrivalTimeAtS.isAfterOrEqual(arrivalTimeAtT)) {   // if the train passes T before S: Changed from isAfter
+                     if (arrivalTimeAtT.isAfter(latestArrivalTime)) {  // If we've found a later train to take
+                        latestArrivalTime = arrivalTimeAtT;
+                        latestTrainNumber = train.number();
+                        latestLine = line.name();
+                     }
+                     // Update the earliest train to take to S
+                     if (arrivalTimeAtS.isAfter(S.timeArrivedAt()))
+                        S.setTimeArrivedAt(arrivalTimeAtS);
+                  }
+               }
+            }
             // Compare new cost to reach T with the current T.cost()
             if (! latestArrivalTime.equals(Time.MIN_TIME)) {
                Time costFromT = Time.subtract(endTime, latestArrivalTime);
@@ -221,43 +342,36 @@ public class Route {
                   T.setCost(costFromT);
                   T.setTimeArrivedAt(latestArrivalTime);
                   T.setPrevTrain(latestTrainNumber);
+                  T.setPrevLine(latestLine);
 
-                  if (T.cost().isBefore(minCost)) {
-                     minCost = T.cost();
-                     S.setPrev(T);
-                  }
-
+                  T.setNext(S);
                   queue.add(T);
                }
             }
          }
+         if (S.equals(start)) {   // The shortest route from start to end has been found
+            startStation = S;
+            break;
+         }
       }
-      // Extract the shortest path recursively
-      route.extractShortestPath(endStation);
+      // Extract the shortest path by repeatedly calling next() from start station to end station
+      RoutingStation next = startStation;
+      if (next != null) {
+         do {
+            route.stations.addLast(next);
+            route.trainNumbers.addLast(next.prevTrain());
+            route.arrivalTimes.addLast(next.timeArrivedAt());
+            next = next.next();
+         }
+         while (next != null);
+      }
       return route;
    }
 
 
    /**
-    * Extract all the stations visited and trains taken on the shortest path and add them 
-    * to the 'stations' and 'trainNumbers' instance variables respectively 
-    * 
-    * @param V: The end station on the route
-    */
-   private void extractShortestPath(RoutingStation V) {
-      if (V != null) { 
-         this.stations.addFirst(V); 
-         this.trainNumbers.addFirst(V.prevTrain()); 
-         this.arrivalTimes.addFirst(V.timeArrivedAt()); 
-         
-         this.extractShortestPath(V.prev()); 
-      }
-   }
-
-
-   /**
     * Get a list of the station names visited in order along the shortest path. Should only be called after
-    * calling getRoute_EarliestArrival
+    * calling getRoute_EarliestArrival or getRoute_LatestDeparture
     * @return list of station names
     */
    public String[] stations() {
@@ -272,7 +386,7 @@ public class Route {
 
    /**
     * Get a list of the trains taken along the shortest path. Should only be called after
-    * calling getRoute_EarliestArrival
+    * calling getRoute_EarliestArrival or getRoute_LatestDeparture
     * @return list of train numbers
     */
    public Integer[] trainNumbers() {
@@ -281,7 +395,8 @@ public class Route {
 
 
    /**
-    * Get a list of the times the train stopped along the way to the destination (i.e. at each intermediate station)
+    * Get a list of the times the train stopped along the way to the destination (i.e. at each intermediate station).
+    * Should only be called after calling getRoute_EarliestArrival or getRoute_LatestDeparture
     * @return list of arrival times at each station
     */
    public Time[] arrivalTimes() {
