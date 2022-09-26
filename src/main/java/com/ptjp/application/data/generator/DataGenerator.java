@@ -21,9 +21,7 @@ public class DataGenerator {
             userService.update(new User("conorveAdmin_","Conor Van Eden", passwordEncoder.encode("123"), Role.ADMIN));
             userService.update(new User("zacschmidtAdmin_","Zac Schmidt", passwordEncoder.encode("123"), Role.ADMIN));
             userService.update(new User("michaelwadeAdmin", "Michael Wade", passwordEncoder.encode("123"), Role.ADMIN));
-
-            // 1 user role for testing
-            userService.update(new User("bailey", "Bailey Van Eden", passwordEncoder.encode("123"), Role.USER, "Cape Town - Paris; Mowbray - Wynberg; Rondebosch - Stellenbosch; Athlone - Belville;"));
+            
         };
     }
 }
