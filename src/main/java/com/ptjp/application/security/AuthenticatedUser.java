@@ -1,5 +1,6 @@
 package com.ptjp.application.security;
 
+import com.ptjp.application.data.Role;
 import com.ptjp.application.data.entity.User;
 import com.ptjp.application.data.service.UserRepository;
 import com.vaadin.flow.component.UI;
@@ -16,11 +17,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthenticatedUser {
 
-    private final UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
     public AuthenticatedUser(UserRepository userRepository) {
         this.userRepository = userRepository;
+    }
+
+    public AuthenticatedUser() {
     }
 
     private Optional<Authentication> getAuthentication() {
@@ -38,5 +42,4 @@ public class AuthenticatedUser {
         SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
         logoutHandler.logout(VaadinServletRequest.getCurrent().getHttpServletRequest(), null, null);
     }
-
 }
