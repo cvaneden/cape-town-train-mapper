@@ -3,10 +3,7 @@ package com.ptjp.application.views.login;
 import com.ptjp.application.security.AuthenticatedUser;
 import com.vaadin.flow.component.login.LoginI18n;
 import com.vaadin.flow.component.login.LoginOverlay;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 
 @PageTitle("Login")
 @Route(value = "login")
@@ -18,15 +15,17 @@ public class LoginView extends LoginOverlay implements BeforeEnterObserver {
         this.authenticatedUser = authenticatedUser;
         setAction("login");
 
-        LoginI18n i18n = LoginI18n.createDefault();
-        i18n.setHeader(new LoginI18n.Header());
-        i18n.getHeader().setTitle("Cape Town Train Mapper");
-        i18n.getHeader().setDescription("Login using user/user or admin/admin");
-        i18n.setAdditionalInformation(null);
-        setI18n(i18n);
+        LoginI18n loginForm = LoginI18n.createDefault();
+        loginForm.setHeader(new LoginI18n.Header());
+        loginForm.getHeader().setTitle("Cape Town Train Mapper");
+        loginForm.getHeader().setDescription("Login using credentials. If new, click the sign-up button.");
+        loginForm.setAdditionalInformation(null);
+        setI18n(loginForm);
 
         setForgotPasswordButtonVisible(false);
         setOpened(true);
+
+
     }
 
     @Override
@@ -34,9 +33,11 @@ public class LoginView extends LoginOverlay implements BeforeEnterObserver {
         if (authenticatedUser.get().isPresent()) {
             // Already logged in
             setOpened(false);
-            event.forwardTo("");
+            event.forwardTo("home");
+        }
+        else{
+            setError(event.getLocation().getQueryParameters().getParameters().containsKey("error"));
         }
 
-        setError(event.getLocation().getQueryParameters().getParameters().containsKey("error"));
     }
 }
