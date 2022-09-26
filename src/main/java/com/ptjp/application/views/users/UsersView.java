@@ -1,7 +1,9 @@
 package com.ptjp.application.views.users;
 
-import com.ptjp.application.data.entity.Users;
-import com.ptjp.application.data.service.UsersService;
+import com.ptjp.application.data.Role;
+import com.ptjp.application.data.entity.User;
+import com.ptjp.application.data.service.UserService;
+import com.ptjp.application.security.SecurityConfiguration;
 import com.ptjp.application.views.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -13,6 +15,8 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -27,34 +31,36 @@ import java.util.UUID;
 import javax.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @PageTitle("Users")
 @Route(value = "Users/:usersID?/:action?(edit)", layout = MainLayout.class)
 @RolesAllowed("ADMIN")
 public class UsersView extends Div implements BeforeEnterObserver {
 
-    private final String USERS_ID = "usersID";
+    private final String USER_ID = "userID";
     private final String USERS_EDIT_ROUTE_TEMPLATE = "Users/%s/edit";
 
-    private Grid<Users> grid = new Grid<>(Users.class, false);
+    private Grid<User> grid = new Grid<>(User.class, false);
 
-    private TextField firstName;
-    private TextField lastName;
-    private TextField email;
-    private TextField phone;
+    private TextField name;
+    private TextField username;
 
+    private TextField role;
+    private TextField password;
     private Button cancel = new Button("Cancel");
     private Button save = new Button("Save");
 
-    private BeanValidationBinder<Users> binder;
+    private BeanValidationBinder<User> binder;
 
-    private Users users;
+    private User users;
 
-    private final UsersService usersService;
+    private final UserService usersService;
+    private RadioButtonGroup<String> roleType;
 
     @Autowired
-    public UsersView(UsersService usersService) {
-        this.usersService = usersService;
+    public UsersView(UserService userService) {
+        this.usersService = userService;
         addClassNames("users-view");
 
         // Create UI
@@ -66,30 +72,22 @@ public class UsersView extends Div implements BeforeEnterObserver {
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("email").setAutoWidth(true);
-        grid.addColumn("phone").setAutoWidth(true);
+        grid.addColumn("name").setAutoWidth(true);
+        grid.addColumn("username").setAutoWidth(true);
+        grid.addColumn("favouriteRoutes").setAutoWidth(true);
+        grid.addColumn("role").setAutoWidth(true);
         grid.setItems(query -> usersService.list(
-                PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)))
+                PageRequest.of(query.getPage(),
+                query.getPageSize(),
+                VaadinSpringDataHelpers.toSpringDataSort(query)))
                 .stream());
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
-        // when a row is selected or deselected, populate form
-        grid.asSingleSelect().addValueChangeListener(event -> {
-            if (event.getValue() != null) {
-                UI.getCurrent().navigate(String.format(USERS_EDIT_ROUTE_TEMPLATE, event.getValue().getId()));
-            } else {
-                clearForm();
-                UI.getCurrent().navigate(UsersView.class);
-            }
-        });
 
         // Configure Form
-        binder = new BeanValidationBinder<>(Users.class);
+        binder = new BeanValidationBinder<>(User.class);
 
         // Bind fields. This is where you'd define e.g. validation rules
-
         binder.bindInstanceFields(this);
 
         cancel.addClickListener(e -> {
@@ -99,16 +97,29 @@ public class UsersView extends Div implements BeforeEnterObserver {
 
         save.addClickListener(e -> {
             try {
-                if (this.users == null) {
-                    this.users = new Users();
+                if (name.getValue().trim().isEmpty() || username.getValue().trim().isEmpty() || password.getValue().trim().isEmpty()) {
+                    Notification.show("Missing Information, please try again");
                 }
-                binder.writeBean(this.users);
-
-                usersService.update(this.users);
-                clearForm();
-                refreshGrid();
-                Notification.show("Users details stored.");
-                UI.getCurrent().navigate(UsersView.class);
+                else if (roleType.getValue().equals("User")){
+                    PasswordEncoder passwordEncoder = new SecurityConfiguration().passwordEncoder();
+                    users = new User(username.getValue(), name.getValue(), passwordEncoder.encode(password.getValue()), Role.USER);
+                    binder.writeBean(this.users);
+                    usersService.update(this.users);
+                    clearForm();
+                    refreshGrid();
+                    Notification.show("Users details stored.");
+                    UI.getCurrent().navigate(UsersView.class);
+                }
+                else{
+                    PasswordEncoder passwordEncoder = new SecurityConfiguration().passwordEncoder();
+                    users = new User(username.getValue(), name.getValue(), passwordEncoder.encode(password.getValue()), Role.ADMIN);
+                    binder.writeBean(this.users);
+                    usersService.update(this.users);
+                    clearForm();
+                    refreshGrid();
+                    Notification.show("Users details stored.");
+                    UI.getCurrent().navigate(UsersView.class);
+                }
             } catch (ValidationException validationException) {
                 Notification.show("An exception happened while trying to store the users details.");
             }
@@ -118,9 +129,9 @@ public class UsersView extends Div implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        Optional<UUID> usersId = event.getRouteParameters().get(USERS_ID).map(UUID::fromString);
+        Optional<UUID> usersId = event.getRouteParameters().get(USER_ID).map(UUID::fromString);
         if (usersId.isPresent()) {
-            Optional<Users> usersFromBackend = usersService.get(usersId.get());
+            Optional<User> usersFromBackend = usersService.get(usersId.get());
             if (usersFromBackend.isPresent()) {
                 populateForm(usersFromBackend.get());
             } else {
@@ -143,11 +154,17 @@ public class UsersView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        firstName = new TextField("First Name");
-        lastName = new TextField("Last Name");
-        email = new TextField("Email");
-        phone = new TextField("Phone");
-        Component[] fields = new Component[]{firstName, lastName, email, phone};
+        name = new TextField("Name");
+        username = new TextField("Username");
+        password = new TextField("Password");
+
+        roleType = new RadioButtonGroup<>();
+        roleType.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+        roleType.setLabel("Role");
+        roleType.setItems("User", "Admin");
+        roleType.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+
+        Component[] fields = new Component[]{name, username, password, roleType};
 
         formLayout.add(fields);
         editorDiv.add(formLayout);
@@ -181,7 +198,7 @@ public class UsersView extends Div implements BeforeEnterObserver {
         populateForm(null);
     }
 
-    private void populateForm(Users value) {
+    private void populateForm(User value) {
         this.users = value;
         binder.readBean(this.users);
 
