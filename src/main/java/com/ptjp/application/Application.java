@@ -18,7 +18,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
  */
 @SpringBootApplication
 @Theme(value = "capetowntrainmapper", variant = Lumo.DARK)
-@PWA(name = "Cape Town Train Mapper", shortName = "Cape Town Train Mapper", offlineResources = {}, iconPath = "./icons/icon2.png")
+@PWA(name = "Cape Town Train Mapper", shortName = "Cape Town Train Mapper", offlineResources = {})
 @NpmPackage(value = "line-awesome", version = "1.3.0")
 public class Application extends SpringBootServletInitializer implements AppShellConfigurator {
 
