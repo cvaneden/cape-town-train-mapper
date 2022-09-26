@@ -1,41 +1,33 @@
 package com.ptjp.application.views.home;
 
+import JourneyPlanner.Graph;
+import JourneyPlanner.Line;
+import JourneyPlanner.RoutingStation;
+import JourneyPlanner.Time;
 import com.ptjp.application.data.entity.RouteItem;
-import com.ptjp.application.data.entity.Users;
 import com.ptjp.application.views.MainLayout;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.checkbox.CheckboxGroupVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.timepicker.TimePicker;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.component.icon.Icon;
-
-import JourneyPlanner.*;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -44,7 +36,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-
 
 @PageTitle("Home")
 @Route(value = "home", layout = MainLayout.class)
@@ -61,6 +52,7 @@ public class HomeView extends VerticalLayout {
     private RadioButtonGroup<String> journeyType;
     private TimePicker timePicker;
     private Button goButton;
+    private TextField routeTimes;
 
     // Routing variables
     private final Graph graph;
@@ -71,11 +63,11 @@ public class HomeView extends VerticalLayout {
         grid = new Grid<>(RouteItem.class, false);
 
         // Add columns
+        grid.addColumn(RouteItem::getTrain).setHeader("Train Number").setTextAlign(ColumnTextAlign.CENTER).setWidth("12em").setFlexGrow(0);
         grid.addColumn(RouteItem::getStartTime).setHeader("Departure").setTextAlign(ColumnTextAlign.CENTER).setWidth("8em").setFlexGrow(0);
         grid.addColumn(RouteItem::getStartStation).setHeader("Start").setTextAlign(ColumnTextAlign.CENTER).setWidth("12em").setFlexGrow(0);
         grid.addColumn(RouteItem::getEndStation).setHeader("End").setTextAlign(ColumnTextAlign.CENTER).setWidth("12em").setFlexGrow(0);
         grid.addColumn(RouteItem::getEndTime).setHeader("Arrival").setTextAlign(ColumnTextAlign.CENTER).setWidth("8em").setFlexGrow(0);
-        grid.addColumn(RouteItem::getTrain).setHeader("Train Number").setTextAlign(ColumnTextAlign.CENTER).setWidth("12em").setFlexGrow(0);
         // Add theme
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
@@ -91,6 +83,15 @@ public class HomeView extends VerticalLayout {
         noRoutesExistMsg.getElement().getThemeList().add("badge error");
         noRoutesExistMsg.setVisible(false);
         add(noRoutesExistMsg);
+
+        // =============================================================================================================
+        // Create text field for displaying a route's start time, end time and duration
+        routeTimes = new TextField();
+        routeTimes.setPrefixComponent(new Icon("lumo", "clock"));
+        routeTimes.setWidth("57em");
+        routeTimes.setVisible(false);
+        routeTimes.setReadOnly(true);
+        add(routeTimes);
 
         // =============================================================================================================
         // Create schedule and graph datastructures
@@ -163,13 +164,17 @@ public class HomeView extends VerticalLayout {
      * @param route the route object to display infomation about
      * @return the component containing the grid and transfer label
      */
-    private Component getGrid(JourneyPlanner.Route route, String start, String end) {
+    private Component getGrid(JourneyPlanner.Route route, String start, String end, int dayType) {
         var layout = new VerticalLayout();
 
         // Get values from route object
+        HashMap<String, Line> lines = JourneyPlanner.Route.lines();
+        Graph graph = JourneyPlanner.Route.graph();
+
         String[] stations = route.stations();
         Integer[] trains = route.trainNumbers();
         Time[] times = route.arrivalTimes();
+        String[] linesUsed = route.linesUsed();
         int length = stations.length;
 
         noRoutesExistMsg.setVisible(false);
@@ -177,8 +182,12 @@ public class HomeView extends VerticalLayout {
         if ((stations.length == 0) || (! stations[length - 1].equals(end)) || (! stations[0].equals(start))) {
             noRoutesExistMsg.setVisible(true);
             grid.setVisible(false);
+            routeTimes.setVisible(false);
         }
-
+        else {
+            routeTimes.setVisible(true);
+            routeTimes.setValue(times[0].toString() + " - " + times[length - 1].toString() + "    (" + Time.subtract(times[length - 1], times[0]).inWords() + ")");
+        }
         // Reformat trains array if it's from the latest departure algorithm
         // [3, 3, 3, 4, 0] --> [0, 3, 3, 3, 4]
         if (journeyType.getValue().equals("Set Arrival Time")) {
@@ -194,13 +203,18 @@ public class HomeView extends VerticalLayout {
         int i = 0;
         while (i < length - 1) {
             String startStation = stations[i];
-            String startTime = times[i].toString();
+            String startTime;
+            if (i == 0)
+                startTime = times[i].toString(); // get the time from times[]
+            else  // Otherwise get the actual departure time for the transfer
+                startTime = lines.get(linesUsed[i + 1]).schedule().getTrain(trains[i + 1]).getNextArrivalTimeAt(graph.get(startStation), Time.MIN_TIME, dayType).toString();
+
             int train = trains[i + 1];
             String endStation;
             String endTime;
 
             if (i == 0)
-                i = -1;
+                i = -1;  // for j = i + 1 below
 
             int j;
             for (j = i + 1; j < length; j++) {
@@ -326,8 +340,10 @@ public class HomeView extends VerticalLayout {
             else
                 result = JourneyPlanner.Route.getRoute_LatestDeparture(startStation, endStation, startTime, dayType);
 
-            add(getGrid(result, startStation.name(), endStation.name())); // create the grid showing the route information
+            add(getGrid(result, startStation.name(), endStation.name(), dayType)); // create the grid showing the route information
         });
+
+
 
         // Configure layout
         layout.add(start_station_name);

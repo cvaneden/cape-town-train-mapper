@@ -175,4 +175,39 @@ public class Time {
       }
       return hourString + ":" + minuteString;
     }
+
+
+    /**
+     * Returns a string representation of the time in words. For example 02:42 --> 2 hours and 42 minutes
+     * @return the string representation
+     */
+    public String inWords() {
+        String hourWord = "";
+        String minuteWord = "";
+
+        if (hour != 0) {
+            if (hour > 1)
+                hourWord = String.valueOf(hour % 24) + " hours";
+            else
+                hourWord = "1 hour";
+        }
+        if (minute != 0) {
+            if (minute > 1)
+                minuteWord = String.valueOf(minute) + " minutes";
+            else
+                minuteWord = "1 minute";
+        }
+        if (hourWord.equals("")) {
+            if (minuteWord.equals(""))
+                return "0 minutes";
+            else
+                return minuteWord;
+        }
+        else {
+            if (minuteWord.equals(""))
+                return hourWord;
+            else
+                return hourWord + " and " + minuteWord;
+        }
+    }
 }

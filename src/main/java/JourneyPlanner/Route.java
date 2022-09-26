@@ -47,6 +47,8 @@ public class Route {
     */
    private final LinkedList<Time> arrivalTimes;
 
+   private final LinkedList<String> linesUsed;
+
 
    /**
     * Sets the graph to use during routing.
@@ -54,6 +56,15 @@ public class Route {
     */
    public static void setGraph(Graph graph) {
       Route.graph = graph;
+   }
+
+
+   /**
+    * Get a shallow copy of this route's graph
+    * @return the graph
+    */
+   public static Graph graph() {
+      return Route.graph;
    }
 
 
@@ -67,6 +78,15 @@ public class Route {
 
 
    /**
+    * Get a shallow copy of this route's line schedule
+    * @return the line variable of this class
+    */
+   public static HashMap<String, Line> lines() {
+      return Route.lines;
+   }
+
+
+   /**
     * Creates a new Route object
     * @throws IllegalStateException if {@code setGraph()} and {@code setLines()} have not been called prior
     */
@@ -74,6 +94,7 @@ public class Route {
       this.stations = new LinkedList<RoutingStation>();
       this.trainNumbers = new LinkedList<Integer>(); 
       this.arrivalTimes = new LinkedList<Time>();
+      this.linesUsed = new LinkedList<String>();
 
       if (Route.graph == null)
          throw new IllegalStateException("graph has not been initialised. Use setGraph(Graph graph)");
@@ -224,6 +245,7 @@ public class Route {
             route.stations.addFirst(prev);
             route.trainNumbers.addFirst(prev.prevTrain());
             route.arrivalTimes.addFirst(prev.timeArrivedAt());
+            route.linesUsed.addFirst(prev.prevLine());
             prev = prev.prev();
          }
          while (prev != null);
@@ -361,6 +383,7 @@ public class Route {
             route.stations.addLast(next);
             route.trainNumbers.addLast(next.prevTrain());
             route.arrivalTimes.addLast(next.timeArrivedAt());
+            route.linesUsed.addLast(next.prevLine());
             next = next.next();
          }
          while (next != null);
@@ -401,5 +424,14 @@ public class Route {
     */
    public Time[] arrivalTimes() {
       return this.arrivalTimes.toArray(new Time[arrivalTimes.size()]);
+   }
+
+
+   /**
+    * Get a list of all the lines on which the trains returned by {@code trainsNumber()} travelled on
+    * @return an array of all the line names. Should only be called after calling getRoute_EarliestArrival or getRoute_LatestDeparture
+    */
+   public String[] linesUsed() {
+      return this.linesUsed.toArray(new String[linesUsed.size()]);
    }
 }
