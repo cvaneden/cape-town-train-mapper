@@ -56,8 +56,21 @@ public class HomeView extends VerticalLayout {
 
     // Routing variables
     private final Graph graph;
+    
+    //Save route variables
+    private ConfirmDialog dialog = new ConfirmDialog();
+    private AuthenticatedUser authenticatedUser;
+    private AccessAnnotationChecker accessChecker;
+    private Optional<User> maybeUser;
+    private User user;
+    private UserService userService;
 
-    public HomeView() {
+    public HomeView(AuthenticatedUser authenticatedUser, AccessAnnotationChecker accessChecker, UserService userService) {
+        //initialise variables
+        this.authenticatedUser = authenticatedUser;
+        this.accessChecker = accessChecker;
+        this.userService = userService;
+        
         // =============================================================================================================
         // Create grid
         grid = new Grid<>(RouteItem.class, false);
@@ -350,6 +363,51 @@ public class HomeView extends VerticalLayout {
         layout.add(end_station_name);
         layout.add(journeyType, timePicker);
         layout.add(goButton);
+        
+        // verify if user is logged in and add save route button if they are logged in
+        maybeUser = authenticatedUser.get();
+        if (maybeUser.isPresent()) {
+            user = maybeUser.get();
+
+            //saveRoute button
+            Button button = new Button("Save Route");
+            button.addClickListener(event -> {
+                dialog.open();
+            });
+
+
+            dialog.setHeader("Save Route");
+            dialog.setText("Do you want to save this route for the future?");
+
+            dialog.setCancelable(true);
+
+            dialog.setRejectable(true);
+            dialog.setRejectText("Don't Save");
+            dialog.addCancelListener(event ->
+                    Notification.show("Not Saved")
+            );
+
+
+            dialog.setConfirmText("Save");
+            dialog.addConfirmListener(click -> {
+                String start = start_station_name.getValue();
+                String end = end_station_name.getValue();
+                if(start.equals("") || end.equals("")){
+                    Notification.show("Please enter station names");
+                }
+                
+                else {
+                    String addedRoute = start + " - " + end + ";";
+                    user.setFavouriteRoutes(addedRoute);
+                    String allRoutes = user.getFavouriteRoutes();
+                    userService.update(user);
+                    Notification.show("Saved");
+                }
+            });
+            
+            layout.add(button);
+        }
+        
         return layout;
     }
 
