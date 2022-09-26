@@ -15,7 +15,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class SecurityConfiguration extends VaadinWebSecurityConfigurerAdapter {
 
     public static final String LOGOUT_URL = "/";
-
+    
+    public SecurityConfiguration() {}
+    
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
