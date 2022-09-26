@@ -18,7 +18,6 @@ public class MapView extends VerticalLayout {
         setSpacing(false);
 
         Image img = new Image("images/cape-town-rail-map-dark.png", "map of cape town city trains");
-        //img.setWidth("100em");
         img.setWidthFull();
         add(img);
 
