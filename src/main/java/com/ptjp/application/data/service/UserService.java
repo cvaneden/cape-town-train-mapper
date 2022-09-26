@@ -22,6 +22,14 @@ public class UserService {
         return repository.findById(id);
     }
 
+    public boolean hasUsername (String username) {
+        User user = repository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        else{return true;}
+    }
+
     public User update(User entity) {
         return repository.save(entity);
     }
@@ -37,5 +45,6 @@ public class UserService {
     public int count() {
         return (int) repository.count();
     }
+
 
 }
