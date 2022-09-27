@@ -50,8 +50,8 @@ import java.util.*;
 public class HomeView extends VerticalLayout {
     private TextField start_station_name = new TextField("Start Station Name");
     private TextField end_station_name = new TextField("End Station Name");
-    private ComboBox<Route> startStation = new ComboBox<>("Departure Station");
-    private ComboBox<Route> endStation = new ComboBox<>("Destination Station");
+    private ComboBox<String> startStation = new ComboBox<>("Departure Station");
+    private ComboBox<String> endStation = new ComboBox<>("Destination Station");
 
     private Grid<RouteItem> grid;
     private Span noRoutesExistMsg;
@@ -250,7 +250,7 @@ public class HomeView extends VerticalLayout {
         // Sets the items for the grid
         grid.setItems(items);
 
-        add(grid);
+        layout.add(grid);
 
         // Configure layout
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -269,34 +269,56 @@ public class HomeView extends VerticalLayout {
         var layout = new HorizontalLayout();
         layout.setAlignItems(Alignment.BASELINE);
 
-        // When the user types in a station, it auto-corrects spelling, checks if it's a valid station and changes it to title case
-        start_station_name.setValueChangeMode(ValueChangeMode.ON_BLUR);
-        start_station_name.addValueChangeListener(stationTyped -> {
-            // Auto-correct common spelling mistakes and convert input into desired form e.g. Mitchells Plain -> Mitchells Pl.
-            start_station_name.setValue(titleCase(checkAlternateSpelling(start_station_name.getValue().toUpperCase())));
 
-            // Check if input is a station name
-            if (! isStationName(start_station_name.getValue().toUpperCase())) {
-                start_station_name.setErrorMessage("Not a station name");
-                start_station_name.setInvalid(true);
-            }
+        //ComboBox basic for start station input field
+        startStation.setAllowCustomValue(true);
+        startStation.setItems("Abbotsdale","Akasia Park","Artois","Athlone","Avondale",
+                "Belhar","Bellville", "Blackheath","Bonteheuwel","Botha","Brackenfell","Bree River",
+                "Cape Town","Century City", "Chanvonnes","Chris Hani", "Claremont", "Crawford",
+                "Dal Josafat", "De Grendal","Dieprivier", "Du Toit",
+                "Eerste River", "Eikenfontein", "Elsies River", "Esplanade",
+                "False Bay", "Faure", "Firgrove","Fisantekraal", "Fish Hoek",
+                "Glencairn", "Goodwood", "Gouda",
+                "Harfield Rd", "Hazendal", "Heathfield", "Heideveld", "Hermon","Hugenot",
+                "Kalbaskraal","Kalk Bay", "Kapteinsklip", "Kenilworth", "Kentemade", "Khayelitsha", "Klapmuts", "Klipheuwel","Koeberg Rd", "Koelenhof", "Kraaifontein", "Kuils River", "Kuyasa",
+                "Lakeside", "Langa", "Lansdowne", "Lavistown", "Lentegeur", "Lynedoch",
+                "Maitland", "Malan", "Malmesbury","Mandalay", "Mbekweni", "Mellish","Meltonrose", "Mitchells Pl.", "Mikpunt", "Monte Vista", "Mowbray", "Muizenberg", "Muldersvlei", "Mutual",
+                "Ndabeni", "Netreg", "Newlands", "Nolungile", "Nonkqubela", "Nyanga",
+                "Observatory", "Oosterzee", "Ottery",
+                "Paardeneiland", "Paarl", "Parow", "Pentech","Philippi","Pinelands","Plumstead",
+                "Retreat", "Romans River", "Rosebank","Rondebosch",
+                "Salt River","Sarepta","Simon's Town", "Soetendal", "Somerset West","Southfield","Steenberg","Stellenbosch","Steurhof","Stikland","Stock Road","Strand","St James","Sunny Cove",
+                "Thornton","Tygerberg", "Tulbachweg",
+                "Unibell",
+                "Van Der Stel","Vasco","Vlottenberg", "Voëlvlei",
+                "Wellington","Wetton", "Wintervogal","Wittebome","Woltemade","Wolseley", "Worcester", "Woodstock","Wynberg",
+                "Ysterplaat");
+        startStation.setHelperText("Select a departure station");
 
-            goButton.setEnabled(! start_station_name.isInvalid() && ! end_station_name.isInvalid() && ! timePicker.isEmpty());
-        });
-
-        end_station_name.setValueChangeMode(ValueChangeMode.ON_BLUR);
-        end_station_name.addValueChangeListener(stationTyped -> {
-            // Auto-correct common spelling mistakes and convert input into desired form e.g. Mitchells Plain -> Mitchells Pl.
-            end_station_name.setValue(titleCase(checkAlternateSpelling(end_station_name.getValue().toUpperCase())));
-
-            // Check if input is a station name
-            if (! isStationName(end_station_name.getValue().toUpperCase())) {
-                end_station_name.setErrorMessage("Not a station name");
-                end_station_name.setInvalid(true);
-            }
-
-            goButton.setEnabled(! start_station_name.isInvalid() && ! end_station_name.isInvalid() && ! timePicker.isEmpty());
-        });
+        //ComboBox for end station input field
+        endStation.setAllowCustomValue(true);
+        endStation.setItems("Abbotsdale","Akasia Park","Artois","Athlone","Avondale",
+                "Belhar","Bellville", "Blackheath","Bonteheuwel","Botha","Brackenfell","Bree River",
+                "Cape Town","Century City", "Chanvonnes","Chris Hani", "Claremont", "Crawford",
+                "Dal Josafat", "De Grendal","Dieprivier", "Du Toit",
+                "Eerste River", "Eikenfontein", "Elsies River", "Esplanade",
+                "False Bay", "Faure", "Firgrove","Fisantekraal", "Fish Hoek",
+                "Glencairn", "Goodwood", "Gouda",
+                "Harfield Rd", "Hazendal", "Heathfield", "Heideveld", "Hermon","Hugenot",
+                "Kalbaskraal","Kalk Bay", "Kapteinsklip", "Kenilworth", "Kentemade", "Khayelitsha", "Klapmuts", "Klipheuwel","Koeberg Rd", "Koelenhof", "Kraaifontein", "Kuils River", "Kuyasa",
+                "Lakeside", "Langa", "Lansdowne", "Lavistown", "Lentegeur", "Lynedoch",
+                "Maitland", "Malan", "Malmesbury","Mandalay", "Mbekweni", "Mellish","Meltonrose", "Mitchells Pl.", "Mikpunt", "Monte Vista", "Mowbray", "Muizenberg", "Muldersvlei", "Mutual",
+                "Ndabeni", "Netreg", "Newlands", "Nolungile", "Nonkqubela", "Nyanga",
+                "Observatory", "Oosterzee", "Ottery",
+                "Paardeneiland", "Paarl", "Parow", "Pentech","Philippi","Pinelands","Plumstead",
+                "Retreat", "Romans River", "Rosebank","Rondebosch",
+                "Salt River","Sarepta","Simon's Town", "Soetendal", "Somerset West","Southfield","Steenberg","Stellenbosch","Steurhof","Stikland","Stock Road","Strand","St James","Sunny Cove",
+                "Thornton","Tygerberg", "Tulbachweg",
+                "Unibell",
+                "Van Der Stel","Vasco","Vlottenberg", "Voëlvlei",
+                "Wellington","Wetton", "Wintervogal","Wittebome","Woltemade","Wolseley", "Worcester", "Woodstock","Wynberg",
+                "Ysterplaat");
+        endStation.setHelperText("Select a destination station");
 
         // Time input
         timePicker = new TimePicker();
@@ -326,8 +348,6 @@ public class HomeView extends VerticalLayout {
             else
                 timePicker.clear();
         });
-        add(journeyType);
-
 
         // Go button
         goButton = new Button("Go");
@@ -336,37 +356,50 @@ public class HomeView extends VerticalLayout {
         goButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         goButton.addClickListener(click -> {
             // Get values from input fields
-            String startStationName = start_station_name.getValue().toUpperCase();
-            String endStationName = end_station_name.getValue().toUpperCase();
+            String startStationName = startStation.getValue();
+            System.out.println(startStationName);
+            String endStationName = endStation.getValue();
+            System.out.println(endStationName);
 
-            // Create objects out of the inputs
-            RoutingStation startStation = new RoutingStation(this.graph.get(startStationName));
-            RoutingStation endStation = new RoutingStation(this.graph.get(endStationName));
-            Time startTime = new Time(timePicker.getValue().toString());
+            if(startStationName == null || endStationName == null){
+                Notification.show("Please enter valid station names");
+            }
+            else if (startStationName.equals(endStationName)) {
+                Notification.show("You have arrived!");
+            }
+            else {
+                // Create objects out of the inputs
+                String startStationNameUpper = startStationName.toUpperCase();
+                String endStationNameUpper = endStationName.toUpperCase();
+                RoutingStation routingStart = new RoutingStation(this.graph.get(startStationNameUpper));
+                RoutingStation routingEnd = new RoutingStation(this.graph.get(endStationNameUpper));
+                Time startTime = new Time(timePicker.getValue().toString());
 
-            // Determine day type: weekdays = 0, saturdays = 1, sundays = 2
-            int dayOfWeek = LocalDate.now().getDayOfWeek().getValue(); // returns 1 for Mondays, 2 for Tuesday, ... 7 for Sunday
-            int dayType = 0;
-            if (dayOfWeek == 6)
-                dayType = 1;
-            else if (dayOfWeek == 7)
-                dayType = 2;
+                // Determine day type: weekdays = 0, saturdays = 1, sundays = 2
+                int dayOfWeek = LocalDate.now().getDayOfWeek().getValue(); // returns 1 for Mondays, 2 for Tuesday, ... 7 for Sunday
+                int dayType = 0;
+                if (dayOfWeek == 6)
+                    dayType = 1;
+                else if (dayOfWeek == 7)
+                    dayType = 2;
 
-            // Start routing algorithm
-            JourneyPlanner.Route result;
-            if (journeyType.getValue().equals("Set Departure Time"))
-                result = JourneyPlanner.Route.getRoute_EarliestArrival(startStation, endStation, startTime, dayType);
-            else
-                result = JourneyPlanner.Route.getRoute_LatestDeparture(startStation, endStation, startTime, dayType);
+                // Start routing algorithm
+                JourneyPlanner.Route result;
+                if (journeyType.getValue().equals("Set Departure Time"))
+                    result = JourneyPlanner.Route.getRoute_EarliestArrival(routingStart, routingEnd, startTime, dayType);
+                else
+                    result = JourneyPlanner.Route.getRoute_LatestDeparture(routingStart, routingEnd, startTime, dayType);
 
-            add(getGrid(result, startStation.name(), endStation.name(), dayType)); // create the grid showing the route information
+                add(getGrid(result, routingStart.name(), routingEnd.name(), dayType)); // create the grid showing the route information
+            }
+
         });
 
 
 
         // Configure layout
-        layout.add(start_station_name);
-        layout.add(end_station_name);
+        layout.add(startStation);
+        layout.add(endStation);
         layout.add(journeyType, timePicker);
         layout.add(goButton);
         
@@ -396,16 +429,23 @@ public class HomeView extends VerticalLayout {
 
             dialog.setConfirmText("Save");
             dialog.addConfirmListener(click -> {
-                String start = start_station_name.getValue();
-                String end = end_station_name.getValue();
-                if(start.equals("") || end.equals("")){
-                    Notification.show("Please enter station names");
+                String start = startStation.getValue();
+                System.out.println(start);
+                String end = endStation.getValue();
+                System.out.println(end);
+
+
+                if(start == null || end == null){
+                    Notification.show("Please enter valid station names");
                 }
-                
+
+                else if (start.equals(end)) {
+                    Notification.show("Please enter a different destination");
+                }
+
                 else {
                     String addedRoute = start + " - " + end + ";";
                     user.setFavouriteRoutes(addedRoute);
-                    String allRoutes = user.getFavouriteRoutes();
                     userService.update(user);
                     Notification.show("Saved");
                 }
@@ -455,51 +495,3 @@ public class HomeView extends VerticalLayout {
         text = text.trim();
         return text.contains("-");
     }
-
-
-    /**
-     * Correct any alternative spelling e.g. "FISHHOEK" -> "FISH HOEK", "MITCHELLS PLAIN" -> "MITCHELLS PL."
-     * @param station the station name to correct
-     * @return the corrected form, or the original string if there are no issues
-     */
-    private static String checkAlternateSpelling(String station) {
-        if (! station.equals("SIMON'S TOWN"))
-            station = station.replace("'S", "S");  // the only apostrophe-S is in SIMON'S TOWN
-
-        return switch (station) {
-            case "FISHHOEK" -> "FISH HOEK";
-            case "MITCHELLS PLAIN", "MITCHELL'S PLAIN", "MITCHELL'S PL." -> "MITCHELLS PL.";
-            case "BREE RIVER" -> "BREË RIVER";
-            case "VOELVLEI" -> "VOËLVLEI";
-            case "TULBACH" -> "TULBACHWEG";
-            case "ST. JAMES" -> "ST JAMES";
-            case "SIMONS TOWN" -> "SIMON'S TOWN";
-            case "KOEBERG ROAD", "KOEBERG RD", "KOEBURG ROAD", "KOEBURG RD" -> "KOEBERG RD";
-            case "STOCK RD" -> "STOCK ROAD";
-            case "GOUDINI RD" -> "GOUDINI ROAD";
-            default -> station;
-        };
-    }
-
-
-    /**
-     * Converts the given string to title case: the first letter of each word is capitalised
-     * @param text the string to convert
-     * @return the converted string
-     */
-    private static String titleCase(String text) {
-        if (text.equals(""))
-            return "";
-
-        text = text.toLowerCase();
-        int i = 0;
-        do {
-            text = text.substring(0, i) + text.substring(i, i + 1).toUpperCase() + text.substring(i + 1);
-            i = text.indexOf(" ", i) + 1;
-        }
-        while (i < text.length() && i != 0);
-        return text;
-    }
-
-
-}
