@@ -170,61 +170,45 @@ public class Route {
             int earliestTrainNumber = 0;
             String earliestLine = "";
 
-            // First check the current train (the one the user is currently on)
-            boolean checkOtherTrains = true;
-            if (S.prevTrain() != 0) {  // If S isn't the starting station i.e. there is a current train
-               Train currentTrain = Route.lines.get(S.prevLine()).schedule().getTrain(S.prevTrain());  // get the current train (its train number)
+            // Find lines which contain S and T in order, or if no such line exists, instead get all lines which contain one of S or T
+            LinkedList<Line> linesWhichContainSAndT = new LinkedList<Line>();
+            boolean foundALineWhichContainsBothInOrder = false;
+            int containsStatus;
 
-               Time currentTrainArrivalAtT = currentTrain.getNextArrivalTimeAt(T, clock, dayType); // get the time the train arrives at T, or null if it doesn't
-               if (! currentTrainArrivalAtT.equals(Time.MAX_TIME)) { // if the current train passes T
-                  earliestArrivalTime = currentTrainArrivalAtT;
-                  earliestTrainNumber = S.prevTrain();
-                  earliestLine = S.prevLine();
-                  checkOtherTrains = false;
+            // Check all lines
+            for (Line line : lines.values()) {
+               containsStatus = line.contains(S, T);
+               if (containsStatus > 0) {
+                  linesWhichContainSAndT.add(line);
+                  if (containsStatus == 3)
+                     foundALineWhichContainsBothInOrder = true;
                }
             }
-            // Otherwise, check all the other trains
-            if (checkOtherTrains) {
+            // If there are lines which contain both S and T in order, then remove all other lines
+            if (foundALineWhichContainsBothInOrder)
+               linesWhichContainSAndT.removeIf(line -> line.contains(S, T) < 3);
 
-               // Find lines which contain S and T in order, or if no such line exists, instead get all lines which contain one of S or T
-               LinkedList<Line> linesWhichContainSAndT = new LinkedList<Line>();
-               boolean foundALineWhichContainsBothInOrder = false;
-               int containsStatus;
+            // for each line
+            for (Line line : linesWhichContainSAndT) {
+               // for each train on this line
+               for (Train train : line.schedule().trains()) {
+                  Time arrivalTimeAtT = train.getNextArrivalTimeAt(T, clock, dayType); // Get the next time that the train arrives at station T
+                  Time arrivalTimeAtS = train.getNextArrivalTimeAt(S, clock, dayType); // If it doesn't pass that station, it returns null
 
-               // Check all lines
-               for (Line line : lines.values()) {
-                  containsStatus = line.contains(S, T);
-                  if (containsStatus > 0) {
-                     linesWhichContainSAndT.add(line);
-                     if (containsStatus == 3)
-                        foundALineWhichContainsBothInOrder = true;
-                  }
-               }
-               // If there are lines which contain both S and T in order, then remove all other lines
-               if (foundALineWhichContainsBothInOrder)
-                  linesWhichContainSAndT.removeIf(line -> line.contains(S, T) < 3);
-
-               // for each line
-               for (Line line : linesWhichContainSAndT) {
-                  // for each train on this line
-                  for (Train train : line.schedule().trains()) {
-                     Time arrivalTimeAtT = train.getNextArrivalTimeAt(T, clock, dayType); // Get the next time that the train arrives at station T
-                     Time arrivalTimeAtS = train.getNextArrivalTimeAt(S, clock, dayType); // If it doesn't pass that station, it returns null
-
-                     // Compare arrivalTime with earliestArrivalTime
-                     if (arrivalTimeAtS.isBefore(arrivalTimeAtT)) {   // if the train passes S before T
-                        if (arrivalTimeAtT.isBefore(earliestArrivalTime)) {  // If we've found an earlier train to take
-                           earliestArrivalTime = arrivalTimeAtT;
-                           earliestTrainNumber = train.number();
-                           earliestLine = line.name();
-                        }
-                        // Update the earliest train to take from S
-                        if (arrivalTimeAtS.isBefore(S.timeArrivedAt()))
-                           S.setTimeArrivedAt(arrivalTimeAtS);
+                  // Compare arrivalTime with earliestArrivalTime
+                  if (arrivalTimeAtS.isBefore(arrivalTimeAtT)) {   // if the train passes S before T
+                     if (arrivalTimeAtT.isBefore(earliestArrivalTime)) {  // If we've found an earlier train to take
+                        earliestArrivalTime = arrivalTimeAtT;
+                        earliestTrainNumber = train.number();
+                        earliestLine = line.name();
                      }
+                     // Update the earliest train to take from S
+                     if (arrivalTimeAtS.isBefore(S.timeArrivedAt()))
+                        S.setTimeArrivedAt(arrivalTimeAtS);
                   }
                }
             }
+
             // Compare new cost to reach T with the current T.cost()
             Time costToT = Time.subtract(earliestArrivalTime, startTime);
             if (costToT.isBefore(T.cost())) { // if we've found a new shortest route to T
