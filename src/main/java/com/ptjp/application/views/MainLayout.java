@@ -3,7 +3,9 @@ package com.ptjp.application.views;
 import com.ptjp.application.data.entity.User;
 import com.ptjp.application.security.AuthenticatedUser;
 import com.ptjp.application.views.home.HomeView;
+import com.ptjp.application.views.info.InfoView;
 import com.ptjp.application.views.map.MapView;
+import com.ptjp.application.views.me.MeView;
 import com.ptjp.application.views.users.UsersView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -109,7 +111,9 @@ public class MainLayout extends AppLayout {
 
             layout.add(avatar, name);
         } else {
+            Anchor registerLink = new Anchor("register", "Register/");
             Anchor loginLink = new Anchor("login", "Sign in");
+            layout.add(registerLink);
             layout.add(loginLink);
         }
 
@@ -140,7 +144,12 @@ public class MainLayout extends AppLayout {
 
                 new MenuItemInfo("Users", "la la-columns", UsersView.class), //
 
+                new MenuItemInfo("About", "la la-info", InfoView.class), //
+
+                new MenuItemInfo("Me", "la la-user", MeView.class)
+
         };
     }
 
 }
+
